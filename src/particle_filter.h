@@ -63,8 +63,13 @@ class ParticleFilter {
    * @param predicted Vector of predicted landmark observations
    * @param observations Vector of landmark observations
    */
-  void dataAssociation(std::vector<LandmarkObs> predicted, 
-                       std::vector<LandmarkObs>& observations);
+  //vector<int> dataAssociation(std::vector<LandmarkObs> predicted, 
+  //                     const std::vector<LandmarkObs>& observations);
+
+  double ParticleFilter::multiVariateGaussian(double ox, double oy, double mu_x, double mu_y, double x, double y);
+  int ParticleFilter::dataAssociation(double obs_x, double obs_y, const Map& map_landmarks);
+  vector<double> ParticleFilter::vehicleToMap(double particle_x, double particle_y, double particle_theta, double obs_x, double obs_y);
+
   
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
