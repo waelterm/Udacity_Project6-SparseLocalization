@@ -47,7 +47,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	  particle.weight = 1.0;
 	  particles.push_back(particle);
   }
-
+  is_initialized = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[],
@@ -60,16 +60,26 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 	 *  http://www.cplusplus.com/reference/random/default_random_engine/
 	 */
 	std::default_random_engine gen;
-	std::cout << "DELTA T:                                                                                        " << delta_t << std::endl;
+	//std::cout << "DELTA T:                                                                                       " << delta_t << std::endl;
+	//std::cout << "REDICTION FUNCTION IS RUNNING" << std::endl;
 	for (int i = 0; i < num_particles; ++i)
 	{
 		double x = particles[i].x;
 		double y = particles[i].y;
 		double theta = particles[i].theta;
-
-		double xf = x + velocity / yaw_rate * (sin(theta + yaw_rate * delta_t) - sin(theta));
-		double yf = y + velocity / yaw_rate * (cos(theta) - cos(theta + yaw_rate * delta_t));
-		double thetaf = theta + yaw_rate * delta_t;
+		double xf;
+		double yf;
+                if (yaw_rate != 0)
+                {
+		    xf = x + velocity / yaw_rate * (sin(theta + yaw_rate * delta_t) - sin(theta));
+		    yf = y + velocity / yaw_rate * (cos(theta) - cos(theta + yaw_rate * delta_t));
+		}
+                else
+	        {
+                    xf = x + velocity*delta_t*cos(theta);
+                    yf = y + velocity*delta_t*sin(theta); 
+		}
+                double thetaf = theta + yaw_rate * delta_t;
 
 		std::normal_distribution<> x_dist{ xf, std_pos[0] };
 		std::normal_distribution<> y_dist{ yf, std_pos[1] };
@@ -162,17 +172,17 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double x = map_landmarks.landmark_list[minimum_index].x_f;
 			double y = map_landmarks.landmark_list[minimum_index].y_f;
 			double p = multiVariateGaussian(ox, oy, mu_x, mu_y, x, y);
-			std::cout << "P: " << p << std::endl;
+			//std::cout << "P: " << p << std::endl;
                         weight *= p;
 		}
-		std::cout << "Before raw update: " << particles[i].weight << std::endl;
+		//std::cout << "Before raw update: " << particles[i].weight << std::endl;
 		particles[i].weight = weight;
 		weights.push_back(weight);
-		std::cout << "After raw update: " << particles[i].weight << std::endl;
+		//std::cout << "After raw update: " << particles[i].weight << std::endl;
 		SetAssociations(particles[i], associations, sense_x, sense_y);
 	}
 	double weight_sum = accumulate(weights.begin(), weights.end(), 0.0);
-	std::cout << "WeightSum: " << weight_sum << std::endl;
+	//std::cout << "WeightSum: " << weight_sum << std::endl;
 	if (weight_sum == 0)
         {
             weight_sum = 0.000000000000000000000000000000000000000000000000000000000000000000000001;
@@ -180,7 +190,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         for (int i = 0; i < num_particles; ++i)
 	{       
 		particles[i].weight /= weight_sum;
-		std::cout << "After adjustment raw update: " << particles[i].weight << std::endl;
+		//std::cout << "After adjustment raw update: " << particles[i].weight << std::endl;
 	}
 }
 
