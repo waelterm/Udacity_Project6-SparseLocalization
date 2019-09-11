@@ -30,7 +30,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 1000;  // TODO: Set the number of particles
+  num_particles = 100;  // TODO: Set the number of particles
   std::default_random_engine gen;
   std::normal_distribution<> x_dist{ x,std[0] };
   std::normal_distribution<> y_dist{ y,std[1] };
@@ -60,7 +60,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 	 *  http://www.cplusplus.com/reference/random/default_random_engine/
 	 */
 	std::default_random_engine gen;
-
+	std::cout << "DELTA T:                                                                                        " << delta_t << std::endl;
 	for (int i = 0; i < num_particles; ++i)
 	{
 		double x = particles[i].x;
@@ -90,7 +90,7 @@ vector<double> ParticleFilter::vehicleToMap(double particle_x, double particle_y
 	return transformed;
 }
 
-int ParticleFilter::dataAssociation(double obs_x, double obs_y, const Map& map_landmarks) {
+int ParticleFilter::dataAssociation(double obs_x, double obs_y, const Map& map_landmarks, double range) {
 	// for each observation:
 	vector<double> distances;
 	for (int j = 0; j < map_landmarks.landmark_list.size(); ++j)
@@ -98,8 +98,15 @@ int ParticleFilter::dataAssociation(double obs_x, double obs_y, const Map& map_l
 		double x_diff = (obs_x - map_landmarks.landmark_list[j].x_f);
 		double y_diff = (obs_y - map_landmarks.landmark_list[j].y_f);
 		double euclidean_distance = pow(x_diff * x_diff + y_diff * y_diff, 0.5);
-		std::cout << "Euclid Distance " << j << ": " << euclidean_distance << std::endl;
-		distances.push_back(euclidean_distance);
+		//std::cout << "Euclid Distance " << j << ": " << euclidean_distance << std::endl;
+		if (range > euclidean_distance) 
+                {
+                    distances.push_back(euclidean_distance);
+                }
+                else
+                {
+                    distances.push_back(range);
+		}
 	}
 	int minimum_index = std::min_element(distances.begin(), distances.end()) - distances.begin();
 	return minimum_index;
@@ -144,7 +151,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			vector<double> transformed = vehicleToMap(particle_x, particle_y, particle_theta, obs_x, obs_y);
 			double tobs_x = transformed[0];
 			double tobs_y = transformed[1];
-			int minimum_index = dataAssociation(tobs_x, tobs_y, map_landmarks);
+			int minimum_index = dataAssociation(tobs_x, tobs_y, map_landmarks, sensor_range);
 			associations.push_back(map_landmarks.landmark_list[minimum_index].id_i);
 			sense_x.push_back(map_landmarks.landmark_list[minimum_index].x_f);
 			sense_y.push_back(map_landmarks.landmark_list[minimum_index].y_f);
@@ -155,15 +162,25 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double x = map_landmarks.landmark_list[minimum_index].x_f;
 			double y = map_landmarks.landmark_list[minimum_index].y_f;
 			double p = multiVariateGaussian(ox, oy, mu_x, mu_y, x, y);
-			weight *= p;
+			std::cout << "P: " << p << std::endl;
+                        weight *= p;
 		}
+		std::cout << "Before raw update: " << particles[i].weight << std::endl;
 		particles[i].weight = weight;
+		weights.push_back(weight);
+		std::cout << "After raw update: " << particles[i].weight << std::endl;
 		SetAssociations(particles[i], associations, sense_x, sense_y);
 	}
-	double weight_sum = accumulate(weights.begin(), weights.end(), 0);
-	for (int i = 0; i < num_particles; ++i)
-	{
+	double weight_sum = accumulate(weights.begin(), weights.end(), 0.0);
+	std::cout << "WeightSum: " << weight_sum << std::endl;
+	if (weight_sum == 0)
+        {
+            weight_sum = 0.000000000000000000000000000000000000000000000000000000000000000000000001;
+        }
+        for (int i = 0; i < num_particles; ++i)
+	{       
 		particles[i].weight /= weight_sum;
+		std::cout << "After adjustment raw update: " << particles[i].weight << std::endl;
 	}
 }
 
